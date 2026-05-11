@@ -12,8 +12,6 @@ public class PlayerController : MonoBehaviour
 
     [Header("Бонус - пушка")]
     [SerializeField] private bool hasWeapon = false;
-    [SerializeField] private float weaponDuration = 15f;
-
     private float gunTimer = 0f;
     private float gunDuration = 15;
 
@@ -24,12 +22,14 @@ public class PlayerController : MonoBehaviour
     public Rigidbody2D rb;
     private bool isDead = false;
     private float fireTimer;
+    private Camera mainCam;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        rb.simulated = false; 
+        rb.simulated = false;
         fireTimer = fireRate;
+        mainCam = Camera.main; 
     }
 
     void Update()
@@ -50,54 +50,36 @@ public class PlayerController : MonoBehaviour
                 Shoot();
                 fireTimer = fireRate;
             }
-        }
 
-
-        if (hasWeapon)
-        {
             gunTimer -= Time.deltaTime;
-
-           
             if (gunBar != null)
             {
                 gunBar.value = gunTimer / gunDuration;
             }
-
             if (gunTimer <= 0)
             {
                 DeactivateWeapon();
             }
         }
 
-
         CheckScreenBoundaries();
     }
 
     private void CheckScreenBoundaries()
     {
-        if (Camera.main == null) return;
+        if (mainCam == null) return;
 
-       
-        float camSize = Camera.main.orthographicSize;
-
-        
-        if (transform.position.y < -camSize - 1f)
-        {
-            Die();
-        }
-
-       
-        if (transform.position.y > camSize)
+        float camSize = mainCam.orthographicSize;
+        if (transform.position.y < -camSize - 1f || transform.position.y > camSize)
         {
             Die();
         }
     }
 
-
     public void StartPlaying()
     {
         isDead = false;
-        rb.simulated = true; 
+        rb.simulated = true;
     }
 
     void Flap()
@@ -118,23 +100,16 @@ public class PlayerController : MonoBehaviour
     {
         hasWeapon = true;
         gunTimer = gunDuration;
-
         if (gunContainer != null) gunContainer.SetActive(true);
-        if (gunBar != null)
-        {
-            gunBar.value = 1f; 
-        }
-
+        if (gunBar != null) gunBar.value = 1f;
         CancelInvoke(nameof(DeactivateWeapon));
     }
 
     private void DeactivateWeapon()
     {
         hasWeapon = false;
-        if (gunContainer != null)
-            gunContainer.SetActive(false);
-        if (gunBar != null)
-            gunBar.value = 0f;
+        if (gunContainer != null) gunContainer.SetActive(false);
+        if (gunBar != null) gunBar.value = 0f;
     }
 
     public void Die()
@@ -147,8 +122,7 @@ public class PlayerController : MonoBehaviour
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayExplosionSound();
-        };
-
+        }
         if (GameManager.Instance != null)
         {
             GameManager.Instance.GameOver();

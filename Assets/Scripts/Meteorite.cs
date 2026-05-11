@@ -6,12 +6,19 @@ public class Meteorite : MonoBehaviour
     [SerializeField] private int maxHealth = 2;
     private int currentHealth;
 
-    private float speed = 4f; 
+    [Header("Настройки движения")]
+    [SerializeField] private float baseSpeed = 4f;
+    private float speed;
+
+    [Header("Вращение (по оси Z)")]
+    [SerializeField] private float rotationSpeed = 150f;
 
     void Start()
     {
         currentHealth = maxHealth;
+        speed = baseSpeed;
     }
+
     public void SetSpeed(float newSpeed)
     {
         speed = newSpeed;
@@ -19,10 +26,9 @@ public class Meteorite : MonoBehaviour
 
     void Update()
     {
-        
-        transform.Translate(Vector3.left * speed * Time.deltaTime);
+        transform.Translate(Vector3.left * speed * Time.deltaTime, Space.World);
 
-        
+        transform.Rotate(Vector3.forward * rotationSpeed * Time.deltaTime);
         if (transform.position.x < -12)
         {
             Destroy(gameObject);
@@ -32,18 +38,10 @@ public class Meteorite : MonoBehaviour
     public void TakeDamage()
     {
         currentHealth--;
-        Debug.Log($"Метеорит: {currentHealth}/{maxHealth}");
-
         if (currentHealth <= 0)
         {
-            DestroyMeteorite();
+            Destroy(gameObject);
         }
-    }
-
-    void DestroyMeteorite()
-    {
-        
-        Destroy(gameObject);
     }
 
     void OnCollisionEnter2D(Collision2D collision)

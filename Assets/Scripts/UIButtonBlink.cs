@@ -4,7 +4,7 @@ using TMPro;
 public class UIButtonBlink : MonoBehaviour
 {
     [Header("Настройки мигания")]
-    [SerializeField] private float blinkSpeed = 2f;
+    [SerializeField] private float blinkSpeed = 2.5f;
     [SerializeField] private float minAlpha = 0.3f;
     [SerializeField] private float maxAlpha = 1f;
 

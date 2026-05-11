@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.EventSystems;
 
 public class StartScreenController : MonoBehaviour
 {
@@ -13,18 +14,39 @@ public class StartScreenController : MonoBehaviour
     [SerializeField] private float blinkSpeed = 2f;
     [SerializeField] private GameManager gameManager;
 
-    private bool isHintVisible = true;
     private Color originalHintColor;
 
     void Start()
     {
         originalHintColor = startHintText.color;
 
-      
         int highScore = PlayerPrefs.GetInt("HighScore", 0);
         if (highScore > 0)
         {
-            recordText.text = $"Your record {highScore}";
+            string prefix = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("your_record")
+                : "Your Record";
+            recordText.text = $"{prefix}: {highScore}";
+            recordText.gameObject.SetActive(true);
+        }
+        else
+        {
+            recordText.gameObject.SetActive(false);
+        }
+
+        if (YandexManager.Instance != null)
+            YandexManager.Instance.ShowStickyBanner();
+    }
+    private void UpdateRecordDisplay()
+    {
+        int highScore = PlayerPrefs.GetInt("HighScore", 0);
+        if (highScore > 0)
+        {
+            string prefix = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("your_record")
+                : "Your Record";
+
+            recordText.text = $"{prefix}: {highScore}";
             recordText.gameObject.SetActive(true);
         }
         else
@@ -33,13 +55,18 @@ public class StartScreenController : MonoBehaviour
         }
     }
 
+    public void OnLanguageChanged()
+    {
+        UpdateRecordDisplay();
+    }
+
     void Update()
     {
-        
         float alpha = Mathf.Sin(Time.time * blinkSpeed);
         startHintText.color = new Color(originalHintColor.r, originalHintColor.g, originalHintColor.b, Mathf.Abs(alpha));
 
-        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
+        if ((Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space)) &&
+            !EventSystem.current.IsPointerOverGameObject())
         {
             StartGame();
         }
@@ -50,7 +77,7 @@ public class StartScreenController : MonoBehaviour
         if (gameManager != null)
         {
             gameManager.StartTheGame();
-            gameObject.SetActive(false); 
+            gameObject.SetActive(false);
         }
     }
 }

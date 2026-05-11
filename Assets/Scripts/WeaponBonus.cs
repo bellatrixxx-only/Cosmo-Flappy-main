@@ -28,6 +28,10 @@ public class BonusController : MonoBehaviour
             {
                 player.ActivateWeapon();
             }
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayBonusPickupSound();
+            }
 
             Destroy(gameObject);
         }

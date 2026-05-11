@@ -27,7 +27,7 @@ Transform:
   m_GameObject: {fileID: 117893337793870723}
   serializedVersion: 2
   m_LocalRotation: {x: 1, y: 0, z: 0, w: 0}
-  m_LocalPosition: {x: 2.4893, y: 1.0749998, z: 0}
+  m_LocalPosition: {x: 2.5145, y: 1.0749998, z: 0}
   m_LocalScale: {x: 1.5050371, y: -2.7534292, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -147,6 +147,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1734809747795274369}
+  - component: {fileID: 1531748325043761818}
   m_Layer: 6
   m_Name: ObstaclePair
   m_TagString: Pipe
@@ -171,7 +172,20 @@ Transform:
   - {fileID: 7733480758164679173}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &3739550024400186876
+--- !u!114 &1531748325043761818
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1233100069533338527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ed0b8a277d02d94ba68520af11e5707, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ObstaclePair
+  scorePopupPrefab: {fileID: 5315495996221204701, guid: d88bc55bdc59fe74abad534279f35fbd, type: 3}
+--- !u!1 &2521116331719525064
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -179,39 +193,39 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2228233193239574739}
-  - component: {fileID: 601824496069476874}
-  - component: {fileID: 716553266355527884}
+  - component: {fileID: 8935423572341422734}
+  - component: {fileID: 8059228093866834993}
+  - component: {fileID: 482404287771478518}
   m_Layer: 6
-  m_Name: "\u041F\u0440\u0435\u0433\u0440\u0430\u0434\u04304_0"
+  m_Name: "\u041F\u0440\u0435\u0433\u0440\u0430\u0434\u04304_0 (1)"
   m_TagString: Obstacle
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &2228233193239574739
+--- !u!4 &8935423572341422734
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3739550024400186876}
+  m_GameObject: {fileID: 2521116331719525064}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 2.5145, y: -2.3853002, z: 0}
-  m_LocalScale: {x: 1.5327944, y: -3.3519475, z: 1}
+  m_LocalRotation: {x: 0, y: -0, z: -0, w: -1}
+  m_LocalPosition: {x: 2.5145, y: -1.54, z: 0}
+  m_LocalScale: {x: 1.5050399, y: -2.75343, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7733480758164679173}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &601824496069476874
+  m_LocalEulerAnglesHint: {x: 360, y: 0, z: 0}
+--- !u!212 &8059228093866834993
 SpriteRenderer:
   serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3739550024400186876}
+  m_GameObject: {fileID: 2521116331719525064}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -263,13 +277,13 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!61 &716553266355527884
+--- !u!61 &482404287771478518
 BoxCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3739550024400186876}
+  m_GameObject: {fileID: 2521116331719525064}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -297,7 +311,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0.006667316}
+  m_Offset: {x: 0, y: 0.0069725513}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -307,7 +321,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.95, y: 2.826665}
+  m_Size: {x: 0.95, y: 2.8260546}
   m_EdgeRadius: 0
 --- !u!1 &4979914891355802298
 GameObject:
@@ -370,6 +384,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2228233193239574739}
+  - {fileID: 8935423572341422734}
   m_Father: {fileID: 1734809747795274369}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

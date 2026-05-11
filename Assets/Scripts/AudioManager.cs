@@ -4,17 +4,15 @@ public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance;
 
-    [Header("Настройки музыки")]
+    [Header("Музыка")]
     [SerializeField] private AudioSource musicSource;
     [SerializeField] private AudioClip musicClip;
-    [SerializeField] private AudioClip explosionSound;
 
-    [Header("Звуки")]
+    [Header("Звуковые эффекты")]
     [SerializeField] private AudioClip fireSound;
-
-    
-    private AudioSource fireSource;
-    private AudioSource explosionSource;
+    [SerializeField] private AudioClip explosionSound;
+    [SerializeField] private AudioClip bonusPickupClip;
+    private AudioSource sfxSource;
 
     private void Awake()
     {
@@ -23,7 +21,6 @@ public class AudioManager : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
             InitializeAudio();
-
             PlayMusic();
         }
         else
@@ -36,36 +33,20 @@ public class AudioManager : MonoBehaviour
     {
         if (musicSource == null)
         {
-            GameObject musicObj = new GameObject("MusicSource");
-            musicObj.transform.SetParent(transform);
-            musicSource = musicObj.AddComponent<AudioSource>();
+            musicSource = gameObject.AddComponent<AudioSource>();
         }
         musicSource.clip = musicClip;
         musicSource.loop = true;
         musicSource.playOnAwake = false;
         musicSource.volume = 0.2f;
 
-        if (fireSound != null)
+        if (sfxSource == null)
         {
-            GameObject fireObj = new GameObject("FireSoundSource");
-            fireObj.transform.SetParent(transform);
-
-          
-            fireSource = fireObj.AddComponent<AudioSource>();
-            fireSource.clip = fireSound;
-            fireSource.playOnAwake = false;
-            fireSource.volume = 0.3f;
+            sfxSource = gameObject.AddComponent<AudioSource>();
         }
-
-        if (explosionSound != null)
-        {
-            GameObject explosionObj = new GameObject("ExplosionSoundSource");
-            explosionObj.transform.SetParent(transform);
-            explosionSource = explosionObj.AddComponent<AudioSource>();
-            explosionSource.clip = explosionSound;
-            explosionSource.playOnAwake = false;
-            explosionSource.volume = 10f; 
-        }
+        sfxSource.loop = false;
+        sfxSource.playOnAwake = false;
+        sfxSource.volume = 5f; 
     }
 
     public void PlayMusic()
@@ -93,17 +74,24 @@ public class AudioManager : MonoBehaviour
 
     public void PlayFireSound()
     {
-       
-        if (fireSource != null && fireSource.clip != null)
-        {
-            fireSource.PlayOneShot(fireSound);
-        }
+        PlaySFX(fireSound);
     }
+
     public void PlayExplosionSound()
     {
-        if (explosionSource != null && explosionSound != null)
+        PlaySFX(explosionSound);
+    }
+
+    public void PlayBonusPickupSound()
+    {
+        PlaySFX(bonusPickupClip);
+    }
+
+    private void PlaySFX(AudioClip clip)
+    {
+        if (sfxSource != null && clip != null)
         {
-            explosionSource.PlayOneShot(explosionSound);
+            sfxSource.PlayOneShot(clip);
         }
     }
 }

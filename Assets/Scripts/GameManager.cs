@@ -2,43 +2,12 @@
 using TMPro;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
+using YG;
+using System.Collections;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
-    private Camera mainCam;
-
-  
-
-    [Header("Префабы")]
-    [SerializeField] private GameObject obstaclePairPrefab;
-    [SerializeField] private GameObject meteoritePrefab;
-    [SerializeField] private GameObject bonusPrefab;
-
-    [Header("Спавн препятствий")]
-    [SerializeField] private float startObstacleInterval = 2.5f; 
-    [SerializeField] private float minObstacleInterval = 0.7f;  
-    [SerializeField] private float obstacleIntervalStep = 0.1f; 
-    [SerializeField] private float gapSize = 2.5f;
-    [SerializeField] private float spawnOffsetX = -1.5f;
-
-    [Header("Метеориты (после 10 очков)")]
-    [SerializeField] private float startMeteoriteInterval = 4f;
-    [SerializeField] private float minMeteoriteInterval = 1.2f;
-    [SerializeField] private float meteoriteIntervalStep = 0.3f;
-
-    [Header("Бонусы (после 10 очков)")]
-    [SerializeField] private float startBonusInterval = 15f;
-    [SerializeField] private float maxBonusInterval = 40f;
-    [SerializeField] private float bonusIntervalStep = 2f;
-
-    [Header("Скорость игры")]
-    [SerializeField] private float startGameSpeed = 3f;
-    [SerializeField] private float speedStep = 0.4f;
-
-    [Header("Фон")]
-    [SerializeField] private List<ParallaxLayer> parallaxLayers;
-    [SerializeField] private float bgSpeedRatio = 0.5f;
 
     [Header("Интерфейс")]
     [SerializeField] private GameObject hud;
@@ -47,11 +16,49 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private TextMeshProUGUI finalScoreText;
     [SerializeField] private TextMeshProUGUI highScoreText;
+    [SerializeField] private GameObject newRecordText;
 
-  
+    [Header("Спавн")]
+    [SerializeField] private GameObject obstaclePairPrefab;
+    [SerializeField] private GameObject meteoritePrefab;
+    [SerializeField] private GameObject bonusPrefab;
+
+    [Header("Настройки препятствий")]
+    [SerializeField] private float startObstacleInterval = 2.5f;
+    [SerializeField] private float minObstacleInterval = 0.7f;
+    [SerializeField] private float obstacleIntervalStep = 0.1f;
+    [SerializeField] private float gapSize = 2.5f;
+    [SerializeField] private float spawnOffsetX = -1.5f;
+
+    [Header("Метеориты")]
+    [SerializeField] private float startMeteoriteInterval = 4f;
+    [SerializeField] private float minMeteoriteInterval = 1.2f;
+    [SerializeField] private float meteoriteIntervalStep = 0.3f;
+
+    private int meteoriteSpawnCount = 1;
+    private const int MAX_METEORITES_PER_WAVE = 3;
+    private const float METEORITE_SPREAD = 1.2f;
+
+    [Header("Бонусы")]
+    [SerializeField] private float startBonusInterval = 15f;
+    [SerializeField] private float maxBonusInterval = 40f;
+    [SerializeField] private float bonusIntervalStep = 2f;
+
+    [Header("Скорость")]
+    [SerializeField] private float startGameSpeed = 3f;
+    [SerializeField] private float speedStep = 0.4f;
+
+    [Header("Фон")]
+    [SerializeField] private List<ParallaxLayer> parallaxLayers;
+    [SerializeField] private float bgSpeedRatio = 0.5f;
+
+    private Camera mainCam;
+    private PlayerController playerController;
     private float score = 0;
     private bool isGameActive = false;
     private bool isGameStarted = false;
+
+    public bool IsGameStarted => isGameStarted;
 
     private float currentObstacleInterval;
     private float currentMeteoriteInterval;
@@ -62,30 +69,53 @@ public class GameManager : MonoBehaviour
     private float meteoriteTimer;
     private float bonusTimer;
 
+    private readonly List<ObstaclePair> activeObstacles = new List<ObstaclePair>();
+    private readonly List<GameObject> activePipes = new List<GameObject>();
 
-    public bool IsGameStarted => isGameStarted;
+    private const float OBSTACLE_CHECK_RANGE = 15f;
+    private const float OBSTACLE_MIN_DIST = -3f;
+    private const float SAFETY_MARGIN_SPAWN = 1.8f;
+    private const float SAFETY_MARGIN_GAP = 0.5f;
+    private const float COLLISION_RADIUS = 0.6f;
+    private const int MAX_SPAWN_ATTEMPTS = 30;
+    private const string TAG_PIPE = "Pipe";
+    private const string TAG_OBSTACLE = "Obstacle";
+    private const string NAME_TOP = "TopObstacle";
+    private const string NAME_BOTTOM = "BottomObstacle";
 
     void Awake()
     {
         Screen.orientation = ScreenOrientation.Portrait;
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 
     void Start()
     {
         mainCam = Camera.main;
-        if (mainCam == null) Debug.LogError("❌ Main Camera not found!");
+        playerController = FindFirstObjectByType<PlayerController>();
 
         if (hud != null) hud.SetActive(false);
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (startScreen != null) startScreen.SetActive(true);
+        if (scoreText != null) scoreText.text = "000000";
 
         ResetGameValues();
     }
 
     private void ResetGameValues()
     {
+        score = 0;
+        isGameActive = false;
+        isGameStarted = false;
+
         currentGameSpeed = startGameSpeed;
         currentObstacleInterval = startObstacleInterval;
         currentMeteoriteInterval = startMeteoriteInterval;
@@ -94,6 +124,11 @@ public class GameManager : MonoBehaviour
         obstacleTimer = currentObstacleInterval;
         meteoriteTimer = currentMeteoriteInterval;
         bonusTimer = currentBonusInterval;
+
+        meteoriteSpawnCount = 1;
+
+        activeObstacles.Clear();
+        activePipes.Clear();
 
         UpdateBackgroundSpeed();
     }
@@ -107,10 +142,7 @@ public class GameManager : MonoBehaviour
         SpawnBonus();
     }
 
-    private float GetRightScreenEdge()
-    {
-        return mainCam.orthographicSize * mainCam.aspect;
-    }
+    private float GetRightScreenEdge() => mainCam.orthographicSize * mainCam.aspect;
 
     private Vector2 GetSpawnPosition()
     {
@@ -120,64 +152,126 @@ public class GameManager : MonoBehaviour
         return new Vector2(spawnX, Random.Range(minY, maxY));
     }
 
+    private void UpdateObstacleCache()
+    {
+        activeObstacles.Clear();
+        activeObstacles.AddRange(FindObjectsByType<ObstaclePair>(FindObjectsSortMode.None));
+    }
+
+    private Vector2 GetMeteoriteSpawnPosition(float horizontalOffset = 0f)
+    {
+        float spawnX = GetRightScreenEdge() + spawnOffsetX + horizontalOffset;
+        float camHeight = mainCam.orthographicSize;
+        float minY = -camHeight + 1f;
+        float maxY = camHeight - 1f;
+
+        if (activeObstacles.Count == 0) UpdateObstacleCache();
+
+        ObstaclePair nearestPair = null;
+        float minDist = float.MaxValue;
+
+        foreach (var pair in activeObstacles)
+        {
+            if (pair == null) continue;
+
+            float dist = pair.transform.position.x - spawnX;
+            if (dist > OBSTACLE_MIN_DIST && dist < OBSTACLE_CHECK_RANGE && dist < minDist)
+            {
+                minDist = dist;
+                nearestPair = pair;
+            }
+        }
+
+        if (nearestPair != null)
+        {
+            float topMaxY = float.MinValue;
+            float bottomMinY = float.MaxValue;
+
+            foreach (Transform child in nearestPair.transform)
+            {
+             
+                if (child.name.Contains(NAME_TOP))
+                {
+                    Collider2D col = child.GetComponent<Collider2D>();
+                    if (col != null) topMaxY = col.bounds.max.y;
+                }
+                else if (child.name.Contains(NAME_BOTTOM))
+                {
+                    Collider2D col = child.GetComponent<Collider2D>();
+                    if (col != null) bottomMinY = col.bounds.min.y;
+                }
+            }
+
+            if (topMaxY > float.MinValue && bottomMinY < float.MaxValue)
+            {
+                if (Random.value < 0.5f)
+                {
+                    float spawnY = Mathf.Clamp(topMaxY + SAFETY_MARGIN_SPAWN + Random.Range(0.5f, 2.5f), topMaxY + SAFETY_MARGIN_SPAWN, maxY);
+                    return new Vector2(spawnX, spawnY);
+                }
+                else
+                {
+                    float spawnY = Mathf.Clamp(bottomMinY - SAFETY_MARGIN_SPAWN - Random.Range(0.5f, 2.5f), minY, bottomMinY - SAFETY_MARGIN_SPAWN);
+                    return new Vector2(spawnX, spawnY);
+                }
+            }
+        }
+
+        return new Vector2(spawnX, Random.Range(minY, maxY));
+    }
+
+    private void UpdatePipeCache()
+    {
+        activePipes.Clear();
+        GameObject[] found = GameObject.FindGameObjectsWithTag(TAG_PIPE);
+        activePipes.AddRange(found);
+    }
+
     private Vector2 GetSafeSpawnPosition(float minY, float maxY)
     {
-        int attempts = 0;
-        int maxAttempts = 30;
-        Vector2 spawnPos;
-        LayerMask obstacleLayer = LayerMask.GetMask("Obstacle");
+        if (activePipes.Count == 0) UpdatePipeCache();
 
-       
-        GameObject[] pipes = GameObject.FindGameObjectsWithTag("Pipe");
+        int attempts = 0;
+        LayerMask obstacleLayer = LayerMask.GetMask(TAG_OBSTACLE);
 
         do
         {
             float spawnX = GetRightScreenEdge() + spawnOffsetX;
             float spawnY = Random.Range(minY, maxY);
-            spawnPos = new Vector2(spawnX, spawnY);
+            Vector2 spawnPos = new Vector2(spawnX, spawnY);
 
-           
-            if (Physics2D.OverlapCircle(spawnPos, 0.6f, obstacleLayer) != null)
+            if (Physics2D.OverlapCircle(spawnPos, COLLISION_RADIUS, obstacleLayer) != null)
             {
                 attempts++;
                 continue;
             }
 
             bool isInsideGap = false;
-            float safetyMargin = 0.5f;
-
-            foreach (var pipeObj in pipes)
+            foreach (var pipeObj in activePipes)
             {
-                if (pipeObj.transform.position.x > -5f) 
+                if (pipeObj == null || pipeObj.transform.position.x > -5f) continue;
+
+                Collider2D topCol = null, botCol = null;
+
+                foreach (Transform child in pipeObj.transform)
                 {
-                    Collider2D topCol = null;
-                    Collider2D botCol = null;
+                    if (child.name.Contains(NAME_TOP)) topCol = child.GetComponent<Collider2D>();
+                    else if (child.name.Contains(NAME_BOTTOM)) botCol = child.GetComponent<Collider2D>();
+                }
 
-                    foreach (Transform child in pipeObj.transform)
+                if (topCol != null && botCol != null)
+                {
+                    if (spawnY > botCol.bounds.max.y - SAFETY_MARGIN_GAP && spawnY < topCol.bounds.min.y + SAFETY_MARGIN_GAP)
                     {
-                        if (child.name.Contains("TopObstacle"))
-                            topCol = child.GetComponent<Collider2D>();
-                        else if (child.name.Contains("BottomObstacle"))
-                            botCol = child.GetComponent<Collider2D>();
-                    }
-
-                    if (topCol != null && botCol != null)
-                    {
-                        float gapTopY = topCol.bounds.min.y;
-                        float gapBotY = botCol.bounds.max.y; 
-
-                        if (spawnY > gapBotY - safetyMargin && spawnY < gapTopY + safetyMargin)
-                        {
-                            isInsideGap = true;
-                            break;
-                        }
+                        isInsideGap = true;
+                        break;
                     }
                 }
             }
 
             if (!isInsideGap) return spawnPos;
             attempts++;
-        } while (attempts < maxAttempts);
+        } while (attempts < MAX_SPAWN_ATTEMPTS);
 
         return new Vector2(GetRightScreenEdge() + spawnOffsetX, Random.Range(minY, maxY));
     }
@@ -192,17 +286,18 @@ public class GameManager : MonoBehaviour
 
             foreach (Transform child in pair.GetComponentsInChildren<Transform>())
             {
-                if (child.name.Contains("TopObstacle"))
-                    child.localPosition = new Vector3(0, gapSize / 2 + 2.5f, 0);
-                else if (child.name.Contains("BottomObstacle"))
-                    child.localPosition = new Vector3(0, -gapSize / 2 - 2.5f, 0);
+                if (child.name.Contains(NAME_TOP)) child.localPosition = new Vector3(0, gapSize / 2 + 2.5f, 0);
+                else if (child.name.Contains(NAME_BOTTOM)) child.localPosition = new Vector3(0, -gapSize / 2 - 2.5f, 0);
             }
 
-            var movement = pair.GetComponent<ObstaclePair>();
-            if (movement == null) movement = pair.AddComponent<ObstaclePair>();
-            movement.Init(currentGameSpeed);
+            if (pair.TryGetComponent<ObstaclePair>(out var pairScript))
+            {
+                pairScript.Init(currentGameSpeed);
+            }
 
             obstacleTimer = currentObstacleInterval;
+
+            UpdateObstacleCache();
         }
     }
 
@@ -213,9 +308,17 @@ public class GameManager : MonoBehaviour
         meteoriteTimer -= Time.deltaTime;
         if (meteoriteTimer <= 0)
         {
-            Vector2 pos = GetSafeSpawnPosition(-mainCam.orthographicSize + 1f, mainCam.orthographicSize - 1f);
-            GameObject meteorite = Instantiate(meteoritePrefab, new Vector3(pos.x, pos.y, 0), Quaternion.identity);
-            meteorite.GetComponent<Meteorite>().SetSpeed(currentGameSpeed);
+            for (int i = 0; i < meteoriteSpawnCount; i++)
+            {
+                float spread = i * METEORITE_SPREAD;
+                Vector2 pos = GetMeteoriteSpawnPosition(spread);
+                GameObject meteorite = Instantiate(meteoritePrefab, new Vector3(pos.x, pos.y, 0), Quaternion.identity);
+
+                if (meteorite.TryGetComponent<Meteorite>(out var mScript))
+                {
+                    mScript.SetSpeed(currentGameSpeed);
+                }
+            }
 
             meteoriteTimer = currentMeteoriteInterval;
         }
@@ -230,7 +333,11 @@ public class GameManager : MonoBehaviour
         {
             Vector2 pos = GetSafeSpawnPosition(-mainCam.orthographicSize + 1f, mainCam.orthographicSize - 1f);
             GameObject bonus = Instantiate(bonusPrefab, new Vector3(pos.x, pos.y, 0), Quaternion.identity);
-            bonus.GetComponent<BonusController>().SetSpeed(currentGameSpeed);
+
+            if (bonus.TryGetComponent<BonusController>(out var bonusScript))
+            {
+                bonusScript.SetSpeed(currentGameSpeed);
+            }
 
             bonusTimer = currentBonusInterval;
         }
@@ -238,12 +345,28 @@ public class GameManager : MonoBehaviour
 
     public void StartTheGame()
     {
+        if (YandexManager.Instance != null)
+        {
+            YandexManager.Instance.NotifyGameStart();
+          
+            YandexManager.Instance.HideStickyBanner();
+        }
+
+        enabled = true;
+
+        score = 0;
+        if (scoreText != null) scoreText.text = "000000";
+
         isGameStarted = true;
         isGameActive = true;
+
         if (startScreen != null) startScreen.SetActive(false);
         if (hud != null) hud.SetActive(true);
 
-        FindObjectOfType<PlayerController>()?.StartPlaying();
+        if (playerController != null)
+        {
+            playerController.StartPlaying();
+        }
     }
 
     public void AddScore()
@@ -266,16 +389,68 @@ public class GameManager : MonoBehaviour
         currentMeteoriteInterval = Mathf.Max(minMeteoriteInterval, currentMeteoriteInterval - meteoriteIntervalStep);
         currentBonusInterval = Mathf.Min(maxBonusInterval, currentBonusInterval + bonusIntervalStep);
 
+        meteoriteSpawnCount = Mathf.Min(MAX_METEORITES_PER_WAVE, meteoriteSpawnCount + 1);
+
         UpdateBackgroundSpeed();
     }
 
     void UpdateBackgroundSpeed()
     {
         float bgSpeed = -currentGameSpeed * bgSpeedRatio;
-        foreach (var layer in parallaxLayers)
+        foreach (var layer in parallaxLayers) layer?.SetSpeed(bgSpeed);
+    }
+
+    public void ShowFinalScoreAnimation(int score)
+    {
+        string prefix = LocalizationManager.Instance != null
+            ? LocalizationManager.Instance.GetText("your_score")
+            : "Your Score:";
+        StartCoroutine(SlotMachineAnimation(score, finalScoreText, prefix + " "));
+    }
+
+    public void ShowHighScoreAnimation(int highScore)
+    {
+        string prefix = LocalizationManager.Instance != null
+            ? LocalizationManager.Instance.GetText("your_best")
+            : "Your Best:";
+        StartCoroutine(SlotMachineAnimation(highScore, highScoreText, prefix + " "));
+    }
+
+    private IEnumerator SlotMachineAnimation(int targetScore, TextMeshProUGUI textComponent, string prefix)
+    {
+        if (textComponent == null) yield break;
+
+        float totalDuration = 1f;
+        float elapsedTime = 0f;
+        float randomChangeInterval = 0.05f;
+
+        while (elapsedTime < totalDuration)
         {
-            layer?.SetSpeed(bgSpeed);
+            textComponent.text = prefix + Random.Range(0, 999999).ToString("D6");
+            elapsedTime += randomChangeInterval;
+            yield return new WaitForSeconds(randomChangeInterval);
         }
+        yield return StartCoroutine(SmoothSettleToTarget(targetScore, textComponent, prefix));
+    }
+
+    private IEnumerator SmoothSettleToTarget(int targetScore, TextMeshProUGUI textComponent, string prefix)
+    {
+        float settleDuration = 0.3f;
+        float elapsed = 0f;
+
+        while (elapsed < settleDuration)
+        {
+            elapsed += Time.deltaTime;
+            textComponent.text = prefix + Mathf.RoundToInt(Mathf.Lerp(999999, targetScore, elapsed / settleDuration)).ToString("D6");
+            yield return null;
+        }
+        textComponent.text = prefix + targetScore.ToString("D6");
+    }
+
+    private IEnumerator DelayedHighScoreAnimation(int bestScore)
+    {
+        yield return new WaitForSeconds(0.3f);
+        ShowHighScoreAnimation(bestScore);
     }
 
     public void GameOver()
@@ -283,42 +458,109 @@ public class GameManager : MonoBehaviour
         if (!isGameActive) return;
         isGameActive = false;
 
-        if (AudioManager.Instance != null)
+        if (AudioManager.Instance != null) AudioManager.Instance.StopMusic();
+
+        if (playerController != null)
         {
-            AudioManager.Instance.StopMusic();
+            if (playerController.rb != null) playerController.rb.linearVelocity = Vector2.zero;
+            Destroy(playerController.gameObject);
         }
 
-        PlayerController player = FindObjectOfType<PlayerController>();
-        if (player != null)
-        {
-            if (player.rb != null) player.rb.linearVelocity = Vector2.zero;
-            Destroy(player.gameObject);
-        }
-
-        foreach (var bg in FindObjectsOfType<ParallaxLayer>())
+        foreach (var bg in FindObjectsByType<ParallaxLayer>(FindObjectsSortMode.None))
         {
             bg.enabled = false;
         }
 
         int currentScore = (int)score;
-        int bestScore = Mathf.Max(currentScore, PlayerPrefs.GetInt("HighScore", 0));
+        int previousBest = PlayerPrefs.GetInt("HighScore", 0);
+        int bestScore = Mathf.Max(currentScore, previousBest);
+        bool isNewRecord = currentScore > previousBest;
 
-        if (currentScore >= bestScore)
+        if (YandexManager.Instance != null)
+        {
+            YandexManager.Instance.NotifyGameEnd(currentScore);
+        }
+
+        if (gameOverPanel != null) gameOverPanel.SetActive(true);
+
+        if (isNewRecord)
         {
             PlayerPrefs.SetInt("HighScore", bestScore);
             PlayerPrefs.Save();
+
+            if (finalScoreText != null) finalScoreText.gameObject.SetActive(false);
+            if (highScoreText != null) highScoreText.gameObject.SetActive(false);
+
+            StartCoroutine(PlayNewRecordAnimation(bestScore));
+        }
+        else
+        {
+            if (newRecordText != null) newRecordText.SetActive(false);
+            if (finalScoreText != null) finalScoreText.gameObject.SetActive(true);
+            if (highScoreText != null) highScoreText.gameObject.SetActive(true);
+
+            ShowFinalScoreAnimation(currentScore);
+            StartCoroutine(DelayedHighScoreAnimation(bestScore));
         }
 
-        if (finalScoreText != null) finalScoreText.text = $"Your Score: {currentScore:000000}";
-        if (highScoreText != null) highScoreText.text = $"Your Best: {bestScore:000000}";
-        if (gameOverPanel != null) gameOverPanel.SetActive(true);
         if (hud != null) hud.SetActive(false);
-        enabled = false;
+        if (scoreText != null) scoreText.text = "000000";
+
+        if (YandexManager.Instance != null)
+        {
+            YandexManager.Instance.ShowStickyBanner();
+        }
     }
 
     public void RestartGame()
     {
-        AudioManager.Instance.RestartMusic();
+        if (AudioManager.Instance != null) AudioManager.Instance.RestartMusic();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    private IEnumerator PlayNewRecordAnimation(int targetScore)
+    {
+        if (newRecordText == null) yield break;
+
+        TextMeshProUGUI tmp = newRecordText.GetComponent<TextMeshProUGUI>();
+        newRecordText.SetActive(true);
+
+        string newRecordKey = LocalizationManager.Instance != null
+            ? LocalizationManager.Instance.GetText("new_record")
+            : "NEW RECORD!";
+
+        float slotDuration = 1.5f;
+        float elapsed = 0f;
+        float randomChangeInterval = 0.05f;
+        float slotTimer = 0f;
+        int currentDisplayScore = 0;
+
+        while (elapsed < slotDuration)
+        {
+            elapsed += Time.deltaTime;
+            slotTimer += Time.deltaTime;
+
+            if (slotTimer >= randomChangeInterval)
+            {
+                slotTimer = 0f;
+                currentDisplayScore = Random.Range(0, 999999);
+            }
+
+            tmp.text = $"{newRecordKey}\n{currentDisplayScore:000000}";
+            yield return null;
+        }
+
+        float settleDuration = 0.5f;
+        elapsed = 0f;
+        int startScore = currentDisplayScore;
+
+        while (elapsed < settleDuration)
+        {
+            elapsed += Time.deltaTime;
+            currentDisplayScore = Mathf.RoundToInt(Mathf.Lerp(startScore, targetScore, elapsed / settleDuration));
+            tmp.text = $"{newRecordKey}\n{currentDisplayScore:000000}";
+            yield return null;
+        }
+        tmp.text = $"{newRecordKey}\n{targetScore:000000}";
     }
 }
