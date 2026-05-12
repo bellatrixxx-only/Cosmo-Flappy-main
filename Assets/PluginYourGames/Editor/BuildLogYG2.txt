@@ -1,0 +1,3 @@
+﻿Build path: C:/Users/user/Desktop/CosmoFlappyV2
+Build number: 1
+PluginYG version: 2.0091

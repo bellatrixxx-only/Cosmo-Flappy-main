@@ -7,11 +7,18 @@ public class AudioManager : MonoBehaviour
     [Header("Музыка")]
     [SerializeField] private AudioSource musicSource;
     [SerializeField] private AudioClip musicClip;
+    [Range(0f, 1f)][SerializeField] private float musicVolume = 0.7f;
 
     [Header("Звуковые эффекты")]
     [SerializeField] private AudioClip fireSound;
+    [Range(0f, 1f)][SerializeField] private float fireVolume = 0.5f;
+
     [SerializeField] private AudioClip explosionSound;
+    [Range(0f, 1f)][SerializeField] private float explosionVolume = 0.8f;
+
     [SerializeField] private AudioClip bonusPickupClip;
+    [Range(0f, 1f)][SerializeField] private float bonusVolume = 0.4f;
+
     private AudioSource sfxSource;
 
     private void Awake()
@@ -38,7 +45,7 @@ public class AudioManager : MonoBehaviour
         musicSource.clip = musicClip;
         musicSource.loop = true;
         musicSource.playOnAwake = false;
-        musicSource.volume = 0.2f;
+        musicSource.volume = musicVolume;
 
         if (sfxSource == null)
         {
@@ -46,13 +53,14 @@ public class AudioManager : MonoBehaviour
         }
         sfxSource.loop = false;
         sfxSource.playOnAwake = false;
-        sfxSource.volume = 5f; 
+        sfxSource.volume = 1f; 
     }
 
     public void PlayMusic()
     {
         if (musicSource != null && musicSource.clip != null)
         {
+            musicSource.volume = musicVolume;
             musicSource.time = 0f;
             musicSource.Play();
         }
@@ -72,26 +80,52 @@ public class AudioManager : MonoBehaviour
         PlayMusic();
     }
 
+   
+    public void SetMusicVolume(float volume)
+    {
+        musicVolume = Mathf.Clamp01(volume);
+        if (musicSource != null)
+        {
+            musicSource.volume = musicVolume;
+        }
+    }
+
     public void PlayFireSound()
     {
-        PlaySFX(fireSound);
+        PlaySFX(fireSound, fireVolume);
     }
 
     public void PlayExplosionSound()
     {
-        PlaySFX(explosionSound);
+        PlaySFX(explosionSound, explosionVolume);
     }
 
     public void PlayBonusPickupSound()
     {
-        PlaySFX(bonusPickupClip);
+        PlaySFX(bonusPickupClip, bonusVolume);
     }
 
-    private void PlaySFX(AudioClip clip)
+    
+    public void SetFireVolume(float volume)
+    {
+        fireVolume = Mathf.Clamp01(volume);
+    }
+
+    public void SetExplosionVolume(float volume)
+    {
+        explosionVolume = Mathf.Clamp01(volume);
+    }
+
+    public void SetBonusVolume(float volume)
+    {
+        bonusVolume = Mathf.Clamp01(volume);
+    }
+
+    private void PlaySFX(AudioClip clip, float volume)
     {
         if (sfxSource != null && clip != null)
         {
-            sfxSource.PlayOneShot(clip);
+            sfxSource.PlayOneShot(clip, volume);
         }
     }
 }

@@ -165,17 +165,17 @@ public class GameManager : MonoBehaviour
         float minY = -camHeight + 1f;
         float maxY = camHeight - 1f;
 
-        if (activeObstacles.Count == 0) UpdateObstacleCache();
+        
+        float safetyMargin = 2.2f;  
 
+        ObstaclePair[] pairs = FindObjectsByType<ObstaclePair>(FindObjectsSortMode.None);
         ObstaclePair nearestPair = null;
         float minDist = float.MaxValue;
 
-        foreach (var pair in activeObstacles)
+        foreach (var pair in pairs)
         {
-            if (pair == null) continue;
-
             float dist = pair.transform.position.x - spawnX;
-            if (dist > OBSTACLE_MIN_DIST && dist < OBSTACLE_CHECK_RANGE && dist < minDist)
+            if (dist > -3f && dist < 15f && dist < minDist)
             {
                 minDist = dist;
                 nearestPair = pair;
@@ -189,13 +189,12 @@ public class GameManager : MonoBehaviour
 
             foreach (Transform child in nearestPair.transform)
             {
-             
-                if (child.name.Contains(NAME_TOP))
+                if (child.name.Contains("TopObstacle"))
                 {
                     Collider2D col = child.GetComponent<Collider2D>();
                     if (col != null) topMaxY = col.bounds.max.y;
                 }
-                else if (child.name.Contains(NAME_BOTTOM))
+                else if (child.name.Contains("BottomObstacle"))
                 {
                     Collider2D col = child.GetComponent<Collider2D>();
                     if (col != null) bottomMinY = col.bounds.min.y;
@@ -206,12 +205,14 @@ public class GameManager : MonoBehaviour
             {
                 if (Random.value < 0.5f)
                 {
-                    float spawnY = Mathf.Clamp(topMaxY + SAFETY_MARGIN_SPAWN + Random.Range(0.5f, 2.5f), topMaxY + SAFETY_MARGIN_SPAWN, maxY);
+                    float spawnY = topMaxY + safetyMargin;
+                    spawnY = Mathf.Clamp(spawnY, topMaxY + safetyMargin, maxY);
                     return new Vector2(spawnX, spawnY);
                 }
                 else
                 {
-                    float spawnY = Mathf.Clamp(bottomMinY - SAFETY_MARGIN_SPAWN - Random.Range(0.5f, 2.5f), minY, bottomMinY - SAFETY_MARGIN_SPAWN);
+                    float spawnY = bottomMinY - safetyMargin;
+                    spawnY = Mathf.Clamp(spawnY, minY, bottomMinY - safetyMargin);
                     return new Vector2(spawnX, spawnY);
                 }
             }
