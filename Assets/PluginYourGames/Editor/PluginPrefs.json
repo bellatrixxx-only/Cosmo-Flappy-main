@@ -1,5 +1,10 @@
 {
-    "stringPrefs": [],
+    "stringPrefs": [
+        {
+            "key": "SelectModuleToggle_YG2",
+            "value": "Localization;EnvirData"
+        }
+    ],
     "intPrefs": [
         {
             "key": "FirstStartup_YG2",

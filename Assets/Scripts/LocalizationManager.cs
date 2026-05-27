@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using System.Collections.Generic;
+using YG;
 
 public class LocalizationManager : MonoBehaviour
 {
@@ -21,6 +22,7 @@ public class LocalizationManager : MonoBehaviour
     private Dictionary<string, TextEntry> textDict = new Dictionary<string, TextEntry>();
 
     private const string LANG_KEY = "GameLanguage";
+    private const string FIRST_LAUNCH_KEY = "IsFirstLaunch";
 
     private void Awake()
     {
@@ -28,14 +30,65 @@ public class LocalizationManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            LoadLanguage();
-            BuildDictionary();
-            ApplyLanguageToUI();
+
+           
+            YG2.onGetSDKData += OnYandexDataLoaded;
+
+            if (YG2.isSDKEnabled)
+            {
+                OnYandexDataLoaded();
+            }
         }
         else
         {
             Destroy(gameObject);
         }
+    }
+
+    private void OnDestroy()
+    {
+        YG2.onGetSDKData -= OnYandexDataLoaded;
+    }
+
+    private void OnYandexDataLoaded()
+    {
+        InitializeLanguage();
+    }
+
+    private void InitializeLanguage()
+    {
+        bool isFirstLaunch = PlayerPrefs.GetInt(FIRST_LAUNCH_KEY, 1) == 1;
+
+        if (isFirstLaunch)
+        {
+            string sdkLang = YG2.envir.language;
+            Debug.Log($"[YG] Auto-detected language: {sdkLang}");
+
+            currentLanguage = ConvertLanguage(sdkLang);
+
+            PlayerPrefs.SetInt(LANG_KEY, (int)currentLanguage);
+            PlayerPrefs.SetInt(FIRST_LAUNCH_KEY, 0);
+            PlayerPrefs.Save();
+        }
+        else
+        {
+            LoadLanguage();
+        }
+
+        BuildDictionary();
+        ApplyLanguageToUI();
+    }
+
+    private Language ConvertLanguage(string sdkLang)
+    {
+        if (string.IsNullOrEmpty(sdkLang)) return Language.Russian;
+
+        string lang = sdkLang.ToLower();
+
+        if (lang.StartsWith("ru")) return Language.Russian;
+        if (lang.StartsWith("en")) return Language.English;
+
+        return Language.Russian;
     }
 
     private void BuildDictionary()
@@ -70,7 +123,7 @@ public class LocalizationManager : MonoBehaviour
 
     private void ApplyLanguageToUI()
     {
-        foreach (var lt in FindObjectsByType<LocalizedText>(FindObjectsSortMode.None))
+        foreach (var lt in FindObjectsByType<LocalizedText>(FindObjectsInactive.Exclude))
         {
             lt.Refresh();
         }

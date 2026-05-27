@@ -1,0 +1,6 @@
+<UXML xmlns="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <VisualElement class="project-settings-title-container">
+        <Toggle name="CrashCapturePlayMode" text="Capture exceptions that occur when running in Play mode."/>
+        <uie:IntegerField name="CrashLogCount" label="Debug.Log Count [0-50]"/>
+    </VisualElement>
+</UXML>

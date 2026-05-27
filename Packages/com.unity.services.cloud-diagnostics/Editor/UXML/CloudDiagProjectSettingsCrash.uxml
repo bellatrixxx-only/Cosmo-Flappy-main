@@ -1,0 +1,16 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xmlns="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement class="project-settings-header-container">
+        <ui:VisualElement class="project-settings-service-specific-container">
+            <ui:VisualElement class="project-settings-title-container clouddiag-column">
+                <ui:VisualElement class="service-data-container">
+                    <ui:VisualElement class="service-title-container">
+                        <ui:Label text="Crashes and exceptions" class="service-title project-settings-title" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label text="Crashes and exceptions aggregates your exception data, so you can optimize your game faster." class="label-container" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    <ui:VisualElement name="CloudDiagCrashStateContainer" />
+    <ui:VisualElement class="separator" />
+</ui:UXML>

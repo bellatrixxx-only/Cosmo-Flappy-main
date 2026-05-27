@@ -1,4 +1,6 @@
 Authorization v1.023
+EnvirData v1.0031
 InterstitialAdv v1.02
 Leaderboards v1.01
+Localization v1.02
 StickyAdv v1.0
